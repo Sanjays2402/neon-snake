@@ -1,12 +1,14 @@
 import {
   CELL_SIZE, GRID_COLS, GRID_ROWS, CANVAS_W, CANVAS_H,
-  DIR, DIFFICULTY, POWERUP_TYPES, COLORS
+  DIR, DIFFICULTY, POWERUP_TYPES, COLORS, FOOD_TYPES
 } from './constants.js'
 import { ParticleSystem } from './particles.js'
+import { playEatSound, playDeathSound, playPowerupSound } from './sound.js'
 
 export class SnakeGame {
-  constructor(difficulty = 'medium') {
+  constructor(difficulty = 'medium', skin = 'neon') {
     this.difficulty = difficulty
+    this.skin = skin
     this.particles = new ParticleSystem()
     this.reset()
   }
@@ -38,6 +40,7 @@ export class SnakeGame {
     this.shakeTimer = 0
     this.shakeIntensity = 0
     this.trail = [] // fading trail positions
+    this.obstacles = []
     this.deathStats = null
     this.startTime = Date.now()
     this.particles.clear()
@@ -151,21 +154,49 @@ export class SnakeGame {
       }
     }
 
+    // Obstacle collision
+    for (const obs of this.obstacles) {
+      if (obs.x === nx && obs.y === ny) {
+        if (this.hasShield) {
+          delete this.activePowerups.shield
+          return
+        }
+        this._die()
+        return
+      }
+    }
+
     const newHead = { x: nx, y: ny }
     this.snake.unshift(newHead)
 
     // Food collision
     if (this.food && nx === this.food.x && ny === this.food.y) {
-      const points = this.hasDouble ? 20 : 10
+      const foodDef = FOOD_TYPES[this.food.type] || FOOD_TYPES.apple
+      let points = foodDef.points
+      if (this.hasDouble) points *= 2
       this.score += points
       this.foodEaten++
-      // Particles
+
+      // Golden fruit gives temporary speed boost
+      if (this.food.type === 'golden') {
+        this.activePowerups.speed = Date.now() + 3000
+      }
+
+      playEatSound(this.food.type)
+
+      // Particles with food-specific color
       this.particles.emit(
         this.food.x * CELL_SIZE + CELL_SIZE / 2,
         this.food.y * CELL_SIZE + CELL_SIZE / 2,
-        COLORS.food,
+        foodDef.color,
         25
       )
+
+      // Spawn obstacles every 5 food eaten
+      if (this.foodEaten % 5 === 0) {
+        this._spawnObstacles(2)
+      }
+
       this._spawnFood()
     } else {
       this.snake.pop()
@@ -174,6 +205,7 @@ export class SnakeGame {
     // Powerup collision
     if (this.powerup && nx === this.powerup.x && ny === this.powerup.y) {
       this.activePowerups[this.powerup.type] = Date.now() + POWERUP_TYPES[this.powerup.type].duration
+      playPowerupSound()
       this.particles.emit(
         this.powerup.x * CELL_SIZE + CELL_SIZE / 2,
         this.powerup.y * CELL_SIZE + CELL_SIZE / 2,
@@ -189,6 +221,7 @@ export class SnakeGame {
     this.state = 'dead'
     this.shakeTimer = 0.5
     this.shakeIntensity = 12
+    playDeathSound()
     const elapsed = Math.floor((Date.now() - this.startTime) / 1000)
     this.deathStats = {
       score: this.score,
@@ -240,14 +273,50 @@ export class SnakeGame {
   }
 
   _spawnFood() {
+    // Pick food type based on weighted random
+    const types = Object.entries(FOOD_TYPES)
+    const totalWeight = types.reduce((sum, [, t]) => sum + t.weight, 0)
+    let roll = Math.random() * totalWeight
+    let foodType = 'apple'
+    for (const [key, t] of types) {
+      roll -= t.weight
+      if (roll <= 0) { foodType = key; break }
+    }
+
     let pos
     do {
       pos = {
         x: Math.floor(Math.random() * GRID_COLS),
         y: Math.floor(Math.random() * GRID_ROWS),
       }
-    } while (this.snake.some(s => s.x === pos.x && s.y === pos.y))
-    this.food = pos
+    } while (
+      this.snake.some(s => s.x === pos.x && s.y === pos.y) ||
+      this.obstacles.some(o => o.x === pos.x && o.y === pos.y)
+    )
+    this.food = { ...pos, type: foodType }
+  }
+
+  _spawnObstacles(count) {
+    for (let i = 0; i < count; i++) {
+      let pos
+      let attempts = 0
+      do {
+        pos = {
+          x: Math.floor(Math.random() * GRID_COLS),
+          y: Math.floor(Math.random() * GRID_ROWS),
+        }
+        attempts++
+      } while (
+        attempts < 100 &&
+        (this.snake.some(s => s.x === pos.x && s.y === pos.y) ||
+        this.obstacles.some(o => o.x === pos.x && o.y === pos.y) ||
+        (this.food && this.food.x === pos.x && this.food.y === pos.y) ||
+        (Math.abs(pos.x - this.snake[0].x) < 3 && Math.abs(pos.y - this.snake[0].y) < 3))
+      )
+      if (attempts < 100) {
+        this.obstacles.push(pos)
+      }
+    }
   }
 
   _schedulePowerup() {

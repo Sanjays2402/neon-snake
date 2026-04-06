@@ -8,14 +8,16 @@ import GameOverScreen from './components/GameOverScreen.jsx'
 export default function App() {
   const [screen, setScreen] = useState('start') // start | playing | gameover
   const [difficulty, setDifficulty] = useState('medium')
+  const [skin, setSkin] = useState('neon')
   const [isPaused, setIsPaused] = useState(false)
   const [score, setScore] = useState(0)
   const [highScore, setHighScore] = useState(0)
   const [deathStats, setDeathStats] = useState(null)
   const [gameKey, setGameKey] = useState(0) // force remount
 
-  const handleStart = useCallback((diff) => {
+  const handleStart = useCallback((diff, selectedSkin) => {
     setDifficulty(diff)
+    setSkin(selectedSkin || 'neon')
     setScreen('playing')
     setIsPaused(false)
     setScore(0)
@@ -54,7 +56,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-[#0a0a0f] overflow-hidden select-none">
-      {screen === 'start' && <StartScreen onStart={handleStart} />}
+      {screen === 'start' && <StartScreen onStart={handleStart} selectedSkin={skin} onSkinChange={setSkin} />}
 
       {(screen === 'playing' || screen === 'gameover') && (
         <div className="flex flex-col items-center gap-1 relative">
@@ -64,6 +66,7 @@ export default function App() {
             <GameCanvas
               key={gameKey}
               difficulty={difficulty}
+              skin={skin}
               onDeath={handleDeath}
               onScoreUpdate={handleScoreUpdate}
               onPause={handlePause}

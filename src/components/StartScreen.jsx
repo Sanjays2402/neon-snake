@@ -1,6 +1,13 @@
-import { DIFFICULTY } from '../game/constants.js'
+import { useState } from 'react'
+import { DIFFICULTY, SNAKE_SKINS } from '../game/constants.js'
 
-export default function StartScreen({ onStart }) {
+export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
+  const [skin, setSkin] = useState(selectedSkin || 'neon')
+
+  const handleSkinSelect = (key) => {
+    setSkin(key)
+    if (onSkinChange) onSkinChange(key)
+  }
   return (
     <div className="flex flex-col items-center justify-center h-full w-full p-4 gap-8">
       {/* Title */}
@@ -33,6 +40,39 @@ export default function StartScreen({ onStart }) {
         </p>
       </div>
 
+      {/* Skin Selection */}
+      <div className="flex flex-col gap-2 w-full max-w-xs">
+        <p
+          className="text-center text-xs opacity-70 mb-1"
+          style={{ fontFamily: "'Press Start 2P', monospace" }}
+        >
+          SNAKE SKIN
+        </p>
+        <div className="flex gap-2 justify-center flex-wrap">
+          {Object.entries(SNAKE_SKINS).map(([key, s]) => {
+            const isActive = skin === key
+            const glowColor = s.head || '#00fff5'
+            return (
+              <button
+                key={key}
+                onClick={() => handleSkinSelect(key)}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg border-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                style={{
+                  fontFamily: "'Press Start 2P', monospace",
+                  borderColor: isActive ? glowColor : glowColor + '33',
+                  background: isActive ? glowColor + '22' : 'transparent',
+                  color: glowColor,
+                  boxShadow: isActive ? `0 0 15px ${glowColor}44` : 'none',
+                }}
+              >
+                <span className="text-lg">{s.icon}</span>
+                <span className="text-[8px]">{s.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Difficulty Selection */}
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <p
@@ -46,7 +86,7 @@ export default function StartScreen({ onStart }) {
           return (
             <button
               key={key}
-              onClick={() => onStart(key)}
+              onClick={() => onStart(key, skin)}
               className="relative px-6 py-4 rounded-lg border-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer group"
               style={{
                 fontFamily: "'Press Start 2P', monospace",

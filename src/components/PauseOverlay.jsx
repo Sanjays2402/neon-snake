@@ -1,4 +1,14 @@
+import { isSoundEnabled, toggleSound } from '../game/sound.js'
+import { useState } from 'react'
+
 export default function PauseOverlay({ onResume, onRestart, onQuit }) {
+  const [soundOn, setSoundOn] = useState(isSoundEnabled())
+
+  const handleToggleSound = () => {
+    const newVal = toggleSound()
+    setSoundOn(newVal)
+  }
+
   return (
     <div className="absolute inset-0 flex items-center justify-center z-20"
       style={{ background: 'rgba(10, 10, 15, 0.85)', backdropFilter: 'blur(4px)' }}
@@ -17,6 +27,7 @@ export default function PauseOverlay({ onResume, onRestart, onQuit }) {
 
         <div className="flex flex-col gap-3 w-48">
           <PauseButton onClick={onResume} color="#00fff5" label="RESUME" />
+          <PauseButton onClick={handleToggleSound} color="#ff6600" label={soundOn ? '🔊 SOUND ON' : '🔇 SOUND OFF'} />
           <PauseButton onClick={onRestart} color="#ffe600" label="RESTART" />
           <PauseButton onClick={onQuit} color="#ff2d95" label="QUIT" />
         </div>

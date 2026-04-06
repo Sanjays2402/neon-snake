@@ -3,7 +3,7 @@ import { SnakeGame } from '../game/engine.js'
 import { drawGame } from '../game/renderer.js'
 import { CANVAS_W, CANVAS_H, DIR } from '../game/constants.js'
 
-export default function GameCanvas({ difficulty, onDeath, onScoreUpdate, onPause, isPaused }) {
+export default function GameCanvas({ difficulty, skin, onDeath, onScoreUpdate, onPause, isPaused }) {
   const canvasRef = useRef(null)
   const gameRef = useRef(null)
   const rafRef = useRef(null)
@@ -12,13 +12,13 @@ export default function GameCanvas({ difficulty, onDeath, onScoreUpdate, onPause
 
   // Initialize game
   useEffect(() => {
-    const game = new SnakeGame(difficulty)
+    const game = new SnakeGame(difficulty, skin)
     gameRef.current = game
     return () => {
       game.destroy()
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [difficulty])
+  }, [difficulty, skin])
 
   // Sync pause state
   useEffect(() => {

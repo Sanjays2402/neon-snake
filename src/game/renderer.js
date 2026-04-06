@@ -1,7 +1,8 @@
-import { CELL_SIZE, GRID_COLS, GRID_ROWS, CANVAS_W, CANVAS_H, COLORS, POWERUP_TYPES } from './constants.js'
+import { CELL_SIZE, GRID_COLS, GRID_ROWS, CANVAS_W, CANVAS_H, COLORS, POWERUP_TYPES, FOOD_TYPES, SNAKE_SKINS } from './constants.js'
 
 export function drawGame(ctx, game, time) {
-  const { snake, renderPositions, food, powerup, activePowerups, trail, particles } = game
+  const { snake, renderPositions, food, powerup, activePowerups, trail, particles, obstacles } = game
+  const skin = SNAKE_SKINS[game.skin] || SNAKE_SKINS.neon
 
   // Screen shake offset
   let sx = 0, sy = 0
@@ -46,8 +47,8 @@ export function drawGame(ctx, game, time) {
   trail.forEach(t => {
     ctx.save()
     ctx.globalAlpha = t.life * 0.3
-    ctx.fillStyle = COLORS.trail
-    ctx.shadowColor = COLORS.snake
+    ctx.fillStyle = skin.trail || COLORS.trail
+    ctx.shadowColor = skin.head || COLORS.snake
     ctx.shadowBlur = 8
     ctx.beginPath()
     ctx.arc(t.x, t.y, 4, 0, Math.PI * 2)
@@ -55,16 +56,17 @@ export function drawGame(ctx, game, time) {
     ctx.restore()
   })
 
-  // Food with pulsing glow
+  // Food with pulsing glow (type-aware)
   if (food) {
     const fx = food.x * CELL_SIZE + CELL_SIZE / 2
     const fy = food.y * CELL_SIZE + CELL_SIZE / 2
     const pulse = 1 + Math.sin(time * 5) * 0.3
+    const foodDef = FOOD_TYPES[food.type] || FOOD_TYPES.apple
 
     ctx.save()
-    ctx.shadowColor = COLORS.food
+    ctx.shadowColor = foodDef.color
     ctx.shadowBlur = 20 * pulse
-    ctx.fillStyle = COLORS.food
+    ctx.fillStyle = foodDef.color
     ctx.beginPath()
     ctx.arc(fx, fy, (CELL_SIZE / 2 - 2) * pulse, 0, Math.PI * 2)
     ctx.fill()
@@ -72,6 +74,13 @@ export function drawGame(ctx, game, time) {
     ctx.shadowBlur = 30 * pulse
     ctx.globalAlpha = 0.4
     ctx.fill()
+    // Icon
+    ctx.shadowBlur = 0
+    ctx.globalAlpha = 1
+    ctx.font = `${12 * pulse}px sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(foodDef.icon, fx, fy + 1)
     ctx.restore()
   }
 
@@ -106,7 +115,29 @@ export function drawGame(ctx, game, time) {
     ctx.restore()
   }
 
-  // Snake body
+  // Obstacles with neon purple glow
+  if (obstacles && obstacles.length > 0) {
+    obstacles.forEach(obs => {
+      const ox = obs.x * CELL_SIZE
+      const oy = obs.y * CELL_SIZE
+      const pulse = 1 + Math.sin(time * 3 + obs.x + obs.y) * 0.15
+
+      ctx.save()
+      ctx.shadowColor = '#b026ff'
+      ctx.shadowBlur = 15 * pulse
+      ctx.fillStyle = '#b026ff'
+      roundedRect(ctx, ox + 2, oy + 2, CELL_SIZE - 4, CELL_SIZE - 4, 3)
+      ctx.fill()
+      // Inner highlight
+      ctx.globalAlpha = 0.3
+      ctx.fillStyle = '#d060ff'
+      roundedRect(ctx, ox + 4, oy + 4, CELL_SIZE - 8, CELL_SIZE - 8, 2)
+      ctx.fill()
+      ctx.restore()
+    })
+  }
+
+  // Snake body (skin-aware)
   if (renderPositions.length > 0) {
     const hasShield = game.hasShield
 
@@ -120,9 +151,8 @@ export function drawGame(ctx, game, time) {
       ctx.save()
       ctx.globalAlpha = alpha
 
-      let color = COLORS.snake
-      if (hasShield) color = POWERUP_TYPES.shield.color
-      if (isHead) color = COLORS.snakeHead
+      let color = _getSkinColor(game.skin, i, renderPositions.length, time, hasShield)
+      if (isHead) color = hasShield ? POWERUP_TYPES.shield.color : (skin.head || COLORS.snakeHead)
 
       ctx.shadowColor = color
       ctx.shadowBlur = isHead ? 20 : 12
@@ -171,9 +201,10 @@ export function drawGame(ctx, game, time) {
     // Connecting segments smoothly
     if (renderPositions.length > 1) {
       ctx.save()
-      ctx.shadowColor = COLORS.snake
+      const connColor = skin.body || skin.head || COLORS.snake
+      ctx.shadowColor = connColor
       ctx.shadowBlur = 8
-      ctx.strokeStyle = COLORS.snake
+      ctx.strokeStyle = connColor
       ctx.lineWidth = CELL_SIZE - 6
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
@@ -219,6 +250,35 @@ export function drawGame(ctx, game, time) {
 
   // CRT scanline overlay
   drawCRT(ctx)
+}
+
+// Get segment color based on skin type
+function _getSkinColor(skinKey, segIndex, totalSegs, time, hasShield) {
+  if (hasShield) return POWERUP_TYPES.shield.color
+  const t = segIndex / totalSegs
+  switch (skinKey) {
+    case 'rainbow': {
+      const hue = ((segIndex * 25) + time * 60) % 360
+      return `hsl(${hue}, 100%, 60%)`
+    }
+    case 'fire': {
+      const r = 255
+      const g = Math.floor(180 - t * 140)
+      const b = Math.floor(30 - t * 30)
+      return `rgb(${r},${g},${b})`
+    }
+    case 'ice': {
+      const r = Math.floor(200 - t * 150)
+      const g = Math.floor(230 - t * 80)
+      const b = 255
+      return `rgb(${r},${g},${b})`
+    }
+    case 'gold':
+      return '#ffd700'
+    case 'neon':
+    default:
+      return '#00fff5'
+  }
 }
 
 function roundedRect(ctx, x, y, w, h, r) {
