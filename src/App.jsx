@@ -15,9 +15,9 @@ export default function App() {
   const [deathStats, setDeathStats] = useState(null)
   const [gameKey, setGameKey] = useState(0) // force remount
 
-  const handleStart = useCallback((diff, selectedSkin) => {
+  const handleStart = useCallback((diff, chosenSkin) => {
     setDifficulty(diff)
-    setSkin(selectedSkin || 'neon')
+    if (chosenSkin) setSkin(chosenSkin)
     setScreen('playing')
     setIsPaused(false)
     setScore(0)
@@ -56,7 +56,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-[#0a0a0f] overflow-hidden select-none">
-      {screen === 'start' && <StartScreen onStart={handleStart} selectedSkin={skin} onSkinChange={setSkin} />}
+      {screen === 'start' && (
+        <StartScreen onStart={handleStart} currentSkin={skin} onSkinChange={setSkin} />
+      )}
 
       {(screen === 'playing' || screen === 'gameover') && (
         <div className="flex flex-col items-center gap-1 relative">
@@ -78,6 +80,8 @@ export default function App() {
                 onResume={() => setIsPaused(false)}
                 onRestart={handleRestart}
                 onQuit={handleQuit}
+                currentSkin={skin}
+                onSkinChange={setSkin}
               />
             )}
 

@@ -4,6 +4,7 @@ import {
 } from './constants.js'
 import { ParticleSystem } from './particles.js'
 import { playEatSound, playDeathSound, playPowerupSound } from './sound.js'
+import { recordGame } from './stats.js'
 
 export class SnakeGame {
   constructor(difficulty = 'medium', skin = 'neon') {
@@ -247,6 +248,7 @@ export class SnakeGame {
       this.deathStats.newHighScore = true
     }
     this.deathStats.highScore = Math.max(this.score, prev)
+    recordGame(this.deathStats)
   }
 
   _updateRenderPositions(lerp) {

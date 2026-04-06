@@ -1,15 +1,21 @@
 import { useState } from 'react'
 import { DIFFICULTY, SNAKE_SKINS } from '../game/constants.js'
+import Leaderboard from './Leaderboard.jsx'
 
-export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
-  const [skin, setSkin] = useState(selectedSkin || 'neon')
+export default function StartScreen({ onStart, currentSkin, onSkinChange }) {
+  const [view, setView] = useState('main') // main | leaderboard
+  const [selectedDiff, setSelectedDiff] = useState(null)
 
-  const handleSkinSelect = (key) => {
-    setSkin(key)
-    if (onSkinChange) onSkinChange(key)
+  if (view === 'leaderboard') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full w-full p-4">
+        <Leaderboard onClose={() => setView('main')} />
+      </div>
+    )
   }
+
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full p-4 gap-8">
+    <div className="flex flex-col items-center justify-center h-full w-full p-4 gap-6">
       {/* Title */}
       <div className="text-center">
         <h1
@@ -33,40 +39,44 @@ export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
           SNAKE
         </h1>
         <p
-          className="mt-4 text-xs opacity-60"
+          className="mt-3 text-xs opacity-60"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
           🐍 A RETRO ARCADE EXPERIENCE
         </p>
       </div>
 
-      {/* Skin Selection */}
-      <div className="flex flex-col gap-2 w-full max-w-xs">
+      {/* Skin Selector */}
+      <div className="w-full max-w-xs">
         <p
-          className="text-center text-xs opacity-70 mb-1"
+          className="text-center text-[9px] opacity-50 mb-2"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
           SNAKE SKIN
         </p>
         <div className="flex gap-2 justify-center flex-wrap">
-          {Object.entries(SNAKE_SKINS).map(([key, s]) => {
-            const isActive = skin === key
-            const glowColor = s.head || '#00fff5'
+          {Object.entries(SNAKE_SKINS).map(([key, skinDef]) => {
+            const isActive = currentSkin === key
+            const borderColor = skinDef.head || '#ffffff'
             return (
               <button
                 key={key}
-                onClick={() => handleSkinSelect(key)}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg border-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                onClick={() => onSkinChange(key)}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg border-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 style={{
                   fontFamily: "'Press Start 2P', monospace",
-                  borderColor: isActive ? glowColor : glowColor + '33',
-                  background: isActive ? glowColor + '22' : 'transparent',
-                  color: glowColor,
-                  boxShadow: isActive ? `0 0 15px ${glowColor}44` : 'none',
+                  borderColor: isActive ? borderColor : borderColor + '33',
+                  background: isActive ? borderColor + '22' : 'transparent',
+                  boxShadow: isActive ? `0 0 15px ${borderColor}44` : 'none',
                 }}
               >
-                <span className="text-lg">{s.icon}</span>
-                <span className="text-[8px]">{s.label}</span>
+                <span className="text-lg">{skinDef.icon}</span>
+                <span
+                  className="text-[7px]"
+                  style={{ color: isActive ? borderColor : borderColor + '88' }}
+                >
+                  {skinDef.label}
+                </span>
               </button>
             )
           })}
@@ -76,7 +86,7 @@ export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
       {/* Difficulty Selection */}
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <p
-          className="text-center text-xs opacity-70 mb-2"
+          className="text-center text-[9px] opacity-50 mb-1"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
           SELECT DIFFICULTY
@@ -86,8 +96,8 @@ export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
           return (
             <button
               key={key}
-              onClick={() => onStart(key, skin)}
-              className="relative px-6 py-4 rounded-lg border-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer group"
+              onClick={() => onStart(key, currentSkin)}
+              className="relative px-6 py-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer group"
               style={{
                 fontFamily: "'Press Start 2P', monospace",
                 borderColor: color + '66',
@@ -103,9 +113,9 @@ export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
                 e.currentTarget.style.boxShadow = 'none'
               }}
             >
-              <span className="text-sm">{label}</span>
+              <span className="text-xs">{label}</span>
               {highScore > 0 && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] opacity-50">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-50">
                   HI: {highScore}
                 </span>
               )}
@@ -114,9 +124,31 @@ export default function StartScreen({ onStart, selectedSkin, onSkinChange }) {
         })}
       </div>
 
+      {/* Leaderboard Button */}
+      <button
+        onClick={() => setView('leaderboard')}
+        className="px-4 py-2 rounded border-2 text-[10px] transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        style={{
+          fontFamily: "'Press Start 2P', monospace",
+          borderColor: '#ffe60066',
+          color: '#ffe600',
+          background: '#ffe60011',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#ffe600'
+          e.currentTarget.style.boxShadow = '0 0 15px #ffe60044'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#ffe60066'
+          e.currentTarget.style.boxShadow = 'none'
+        }}
+      >
+        🏆 LEADERBOARD
+      </button>
+
       {/* Controls info */}
       <div
-        className="text-center text-[10px] opacity-40 leading-relaxed"
+        className="text-center text-[9px] opacity-30 leading-relaxed"
         style={{ fontFamily: "'Press Start 2P', monospace" }}
       >
         <p>ARROWS / WASD / SWIPE</p>
