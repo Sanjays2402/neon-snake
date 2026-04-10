@@ -1,7 +1,7 @@
 import { CELL_SIZE, GRID_COLS, GRID_ROWS, CANVAS_W, CANVAS_H, COLORS, POWERUP_TYPES, FOOD_TYPES, SNAKE_SKINS } from './constants.js'
 
 export function drawGame(ctx, game, time) {
-  const { snake, renderPositions, food, powerup, activePowerups, trail, particles, obstacles } = game
+  const { snake, renderPositions, food, powerup, activePowerups, trail, particles, obstacles, floatingTexts } = game
   const skin = SNAKE_SKINS[game.skin] || SNAKE_SKINS.neon
 
   // Screen shake offset
@@ -221,6 +221,22 @@ export function drawGame(ctx, game, time) {
 
   // Particles
   particles.draw(ctx)
+
+  // Floating score texts
+  if (floatingTexts && floatingTexts.length > 0) {
+    floatingTexts.forEach(ft => {
+      ctx.save()
+      ctx.globalAlpha = ft.life
+      ctx.font = `bold ${14 + (1 - ft.life) * 8}px 'Press Start 2P', monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.shadowColor = ft.color
+      ctx.shadowBlur = 15
+      ctx.fillStyle = ft.color
+      ctx.fillText(ft.text, ft.x, ft.y)
+      ctx.restore()
+    })
+  }
 
   ctx.restore() // end shake transform
 

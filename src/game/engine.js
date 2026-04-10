@@ -11,6 +11,7 @@ export class SnakeGame {
     this.difficulty = difficulty
     this.skin = skin
     this.particles = new ParticleSystem()
+    this.floatingTexts = [] // floating score popups
     this.reset()
   }
 
@@ -117,6 +118,13 @@ export class SnakeGame {
     this.trail.forEach(t => (t.life -= 0.03))
     this.trail = this.trail.filter(t => t.life > 0)
 
+    // Update floating texts
+    this.floatingTexts.forEach(ft => {
+      ft.y -= 1.2
+      ft.life -= 0.025
+    })
+    this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0)
+
     this.particles.update()
   }
 
@@ -184,6 +192,16 @@ export class SnakeGame {
       }
 
       playEatSound(this.food.type)
+
+      // Floating score text
+      const prefix = this.hasDouble ? '×2 ' : ''
+      this.floatingTexts.push({
+        x: this.food.x * CELL_SIZE + CELL_SIZE / 2,
+        y: this.food.y * CELL_SIZE + CELL_SIZE / 2,
+        text: `${prefix}+${points}`,
+        color: foodDef.color,
+        life: 1.0,
+      })
 
       // Particles with food-specific color
       this.particles.emit(
